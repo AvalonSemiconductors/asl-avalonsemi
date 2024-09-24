@@ -5,6 +5,12 @@ This is a fork of The Macroassembler, ASL, incorporating code generators for all
 
 The branch `avalonsemi` contains the actual code and files added/modified have been marked as such.
 
+Currently contains code gens for:
+
+[AS5401](https://github.com/AvalonSemiconductors/tt2-AvalonSemi-5401/tree/main)
+[AS2650-2](https://github.com/AvalonSemiconductors/AS2650)
+[QCPU](https://github.com/AvalonSemiconductors/gfmpw1-multi)
+
 <!-------------------------------------------------------------------->
 [asl]: http://john.ccac.rwth-aachen.de:8000/as/
 [src]: http://john.ccac.rwth-aachen.de:8000/ftp/as/source/c_version/
