@@ -9,7 +9,7 @@
 /*****************************************************************************/
 
 /*
- * (Tholin, 24/09/2024) Added support for: AS2650-2, QCPU
+ * (Tholin, 24/09/2024) Added support for: AS2650-2, QCPU, AS5401
  */
 
 #include "stdinc.h"
@@ -168,6 +168,7 @@
 #include "codexcore.h"
 #include "code1750.h"
 #include "codeqcpu.h"
+#include "code5401.h"
 #include "codekenbak.h"
 #include "codecp1600.h"
 #include "codenano.h"
@@ -4383,6 +4384,7 @@ int main(int argc, char **argv)
     code2650_init();
     code_qcpu_init();
     codeas2650_init();
+    code5401_init();
     codexa_init();
     codeavr_init();
     code29k_init();
