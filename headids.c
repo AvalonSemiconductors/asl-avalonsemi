@@ -8,6 +8,10 @@
 /*                                                                           */
 /*****************************************************************************/
 
+/*
+ * (Tholin, 24/09/2024) Added support for: AS2650-2, QCPU
+ */
+
 #include "stdinc.h"
 
 #include <string.h>
@@ -56,6 +60,7 @@ static const TFamilyDescr Descrs[] =
   { "i960"         , 0x002a, eHexFormatIntel32 },
   { "8X30x"        , 0x003a, eHexFormatIntel   },
   { "2650"         , 0x0037, eHexFormatMotoS   },
+  { "AS2650-2"     , 0x0087, eHexFormatMotoS   },
   { "XA"           , 0x003c, eHexFormatIntel16 },
   { "AVR"          , 0x003b, eHexFormatAtmel   },
   { "AVR(CSEG8)"   , 0x003d, eHexFormatAtmel   },
@@ -133,6 +138,7 @@ static const TFamilyDescr Descrs[] =
   { "PDK15"        , 0x001c, eHexFormatIntel   },
   { "PDK16"        , 0x001d, eHexFormatIntel   },
   { "1750"         , 0x004f, eHexFormatIntel   },
+  { "QCPU"         , 0x0089, eHexFormatIntel   },
   { "CP1600"       , 0x000a, eHexFormatIntel   },
   { "NANO"         , 0x000b, eHexFormatIntel   },
   { "IM6100"       , 0x000c, eHexFormatIntel   },

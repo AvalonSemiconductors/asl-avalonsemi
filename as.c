@@ -8,6 +8,10 @@
 /*                                                                           */
 /*****************************************************************************/
 
+/*
+ * (Tholin, 24/09/2024) Added support for: AS2650-2, QCPU
+ */
+
 #include "stdinc.h"
 #include <string.h>
 #include <ctype.h>
@@ -93,6 +97,7 @@
 #include "code960.h"
 #include "code8x30x.h"
 #include "code2650.h"
+#include "codeas2650-2.h"
 #include "codexa.h"
 #include "codeavr.h"
 #include "code29k.h"
@@ -162,6 +167,7 @@
 #include "codevector.h"
 #include "codexcore.h"
 #include "code1750.h"
+#include "codeqcpu.h"
 #include "codekenbak.h"
 #include "codecp1600.h"
 #include "codenano.h"
@@ -4375,6 +4381,8 @@ int main(int argc, char **argv)
     code960_init();
     code8x30x_init();
     code2650_init();
+    code_qcpu_init();
+    codeas2650_init();
     codexa_init();
     codeavr_init();
     code29k_init();
