@@ -1,7 +1,7 @@
 AvalonSemi Macroassembler
 =========================
 
-This is a fork of The Macroassembler, ASL, incorporating code generators for all custom and semi-custom CPU architectures taped out by the organization. Please see the root repository at (Macroassembler-AS/asl-releases][https://github.com/Macroassembler-AS/asl-releases] for original documentation.
+This is a fork of The Macroassembler, ASL, incorporating code generators for all custom and semi-custom CPU architectures taped out by the organization. Please see the root repository at [Macroassembler-AS/asl-releases](https://github.com/Macroassembler-AS/asl-releases) for original documentation.
 
 <!-------------------------------------------------------------------->
 [asl]: http://john.ccac.rwth-aachen.de:8000/as/
