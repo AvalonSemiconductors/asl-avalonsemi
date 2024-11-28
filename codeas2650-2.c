@@ -170,7 +170,7 @@ static void DecodeRegRel(Word Index) {
 		IndFlag = *ArgStr[2].str.p_str == '*';
 		Dist = EvalStrIntExpressionOffs(&ArgStr[2], IndFlag, UInt15, &OK) - (EProgCounter() + 2);
 		if(OK) {
-			if(((Dist < - 64) || (Dist > 63)) && (!eSymbolFlag_Questionable)) WrError(ErrNum_JmpDistTooBig);
+			if(((Dist < - 64) || (Dist > 63))) WrError(ErrNum_JmpDistTooBig);
 			else {
 				BAsmCode[1] = Dist & 0x7f;
 				if(IndFlag) BAsmCode[1] |= 0x80;
@@ -235,7 +235,7 @@ static void DecodeCondRel(Word Index) {
 		IndFlag = *ArgStr[2].str.p_str == '*';
 		Dist = EvalStrIntExpressionOffs(&ArgStr[2], IndFlag, UInt15, &OK) - (EProgCounter() + 2);
 		if(OK) {
-			if(((Dist < - 64) || (Dist > 63)) && (!eSymbolFlag_Questionable)) WrError(ErrNum_JmpDistTooBig);
+			if(((Dist < - 64) || (Dist > 63))) WrError(ErrNum_JmpDistTooBig);
 			else {
 				BAsmCode[1] = Dist & 0x7f;
 				if(IndFlag) BAsmCode[1] |= 0x80;

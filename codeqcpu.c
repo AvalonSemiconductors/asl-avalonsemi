@@ -99,7 +99,7 @@ static void DecodeBranch(Word Code) {
 	if(ChkArgCnt(1, 1)) {
 		Boolean OK;
 		int dest = EvalStrIntExpression(&ArgStr[1], UInt14, &OK) - EProgCounter();
-		if(!eSymbolFlag_Questionable && ((dest < -1024) || (dest > 1024))) WrError(ErrNum_JmpDistTooBig);
+		if(((dest < -1024) || (dest > 1024))) WrError(ErrNum_JmpDistTooBig);
 		unsigned int destu = (unsigned int)dest;
 		if(OK) {
 			WAsmCode[0] = (destu >> 8) & 0x07;
@@ -301,6 +301,7 @@ static void MakeCode_qcpu(void) {
 	if(Memo("")) return;
 	
 	if(!LookupInstTable(InstTable, OpPart.str.p_str)) WrStrErrorPos(ErrNum_UnknownInstruction, &OpPart);
+	//printf("%ld\r\n", sizeof(LargeWord));
 }
 
 static Boolean IsDef_qcpu(void) {
@@ -313,7 +314,7 @@ static void SwitchFrom_qcpu(void) {
 
 static void SwitchTo_qcpu(void) {
 	TurnWords = False;
-	IntConstMode = eIntConstModeMoto;
+	SetIntConstMode(eIntConstModeMoto);
 	ShiftIsOccupied = False;
 	
 	PCSymbol = "*";

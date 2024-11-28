@@ -33,7 +33,7 @@ static CPUVar CPUAS11;
 #define MODE_INDEXED 6
 #define MODE_INDEXED_DEFERRED 7
 
-static Boolean DecodeMode(struct sStrComp *pComp, Boolean bodgefix, Word *mode, Byte *reg, sint *immediate, Boolean *has_immediate) {
+static Boolean DecodeMode(struct sStrComp *pComp, Boolean bodgefix, Boolean secondarg, Word *mode, Byte *reg, sint *immediate, Boolean *has_immediate) {
 	*reg = 0;
 	*has_immediate = False;
 	Boolean OK;
@@ -54,7 +54,7 @@ static Boolean DecodeMode(struct sStrComp *pComp, Boolean bodgefix, Word *mode, 
 	}
 	if(pAsc[0] == '-') {
 		if(pAsc[1] != '(' || pAsc[len-1] != ')') return False;
-		StrCompCutLeft(pComp, 1);
+		StrCompCutLeft(pComp, 2);
 		StrCompShorten(pComp, 1);
 		if((pAsc[0] != 'R' && pAsc[0] != 'r') || pAsc[2] != 0) goto bad_reg;
 		*reg = pAsc[1] - '0';
@@ -67,7 +67,7 @@ static Boolean DecodeMode(struct sStrComp *pComp, Boolean bodgefix, Word *mode, 
 		*mode = deferred ? MODE_AUTOINCREMENT_DEFERRED : MODE_AUTOINCREMENT;
 		StrCompCutLeft(pComp, 1);
 		len = strlen(pAsc);
-		*immediate = EvalStrIntExpression(pComp, UInt16, &OK);
+		*immediate = (Word)EvalStrIntExpression(pComp, Int16, &OK);
 		*has_immediate = True;
 		return OK;
 	}
@@ -114,7 +114,7 @@ static Boolean DecodeMode(struct sStrComp *pComp, Boolean bodgefix, Word *mode, 
 	*reg = 7;
 	Word target = EvalStrIntExpression(pComp, UInt16, &OK);
 	if(!OK) return False;
-	sint diff = (sint)target - (sint)EProgCounter() * 2 - (bodgefix ? 6 : 4);
+	sint diff = (sint)target - (sint)EProgCounter() - (bodgefix ? 4 : 2) - (secondarg ? 2 : 0);
 	if(diff >= 32768 || diff < -32768) {
 		WrStrErrorPos(ErrNum_WOverRange, pComp);
 		return False;
@@ -134,15 +134,15 @@ static void DecodeSingle(Word Index) {
 		Byte reg;
 		sint immediate;
 		Boolean has_immediate;
-		Boolean OK = DecodeMode(&ArgStr[1], False, &mode, &reg, &immediate, &has_immediate);
+		Boolean OK = DecodeMode(&ArgStr[1], False, Index == 1, &mode, &reg, &immediate, &has_immediate);
 		if(!OK) {
 			WrError(ErrNum_InvAddrMode);
 			return;
 		}
-		CodeLen = 1;
+		CodeLen = 2;
 		WAsmCode[0] = (Index << 6) | (mode << 3) | reg;
 		if(has_immediate) {
-			CodeLen = 2;
+			CodeLen = 4;
 			WAsmCode[1] = (Word)immediate;
 		}
 	}
@@ -155,7 +155,7 @@ static void DecodeDouble(Word Index) {
 		Byte reg;
 		sint immediate;
 		Boolean has_immediate;
-		Boolean OK = DecodeMode(&ArgStr[1], False, &mode, &reg, &immediate, &has_immediate);
+		Boolean OK = DecodeMode(&ArgStr[1], False, False, &mode, &reg, &immediate, &has_immediate);
 		if(!OK) {
 			WrError(ErrNum_InvAddrMode);
 			return;
@@ -164,20 +164,23 @@ static void DecodeDouble(Word Index) {
 		Byte reg2;
 		sint immediate2;
 		Boolean has_immediate2;
-		OK = DecodeMode(&ArgStr[2], has_immediate, &mode2, &reg2, &immediate2, &has_immediate2);
+		OK = DecodeMode(&ArgStr[2], has_immediate, True, &mode2, &reg2, &immediate2, &has_immediate2);
 		if(!OK) {
 			WrError(ErrNum_InvAddrMode);
 			return;
 		}
-		CodeLen = 1;
+		if(has_immediate && has_immediate2 && reg == 7 && (mode == MODE_INDEXED_DEFERRED || mode == MODE_INDEXED)) {
+			immediate -= 2;
+		}
+		CodeLen = 2;
 		WAsmCode[0] = (Index << 12) | (mode << 9) | (reg << 6) | (mode2 << 3) | reg2;
 		if(has_immediate) {
-			CodeLen = 2;
+			CodeLen = 4;
 			WAsmCode[1] = (Word)immediate;
 		}
 		if(has_immediate2) {
-			CodeLen++;
-			WAsmCode[CodeLen - 1] = (Word)immediate2;
+			WAsmCode[CodeLen == 2 ? 1 : 2] = (Word)immediate2;
+			CodeLen += 2;
 		}
 	}
 }
@@ -190,27 +193,71 @@ static void DecodeRegSource(Word Index) {
 		Byte reg;
 		sint immediate;
 		Boolean has_immediate;
-		Boolean OK = DecodeMode(&ArgStr[1], False, &mode, &reg, &immediate, &has_immediate);
+		Boolean OK = DecodeMode(&ArgStr[2], False, False, &mode, &reg, &immediate, &has_immediate);
 		if(!OK) {
 			WrError(ErrNum_InvAddrMode);
 			return;
 		}
-		char* pAsc = ArgStr[2].str.p_str;
+		char* pAsc = ArgStr[1].str.p_str;
 		if(pAsc[0] != 'R' && pAsc[0] != 'r') {
-			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
+			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
 		Byte reg2 = pAsc[1] - '0';
 		if(reg2 < 0 || reg2 >= 8) {
-			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
+			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
-		CodeLen = 1;
+		CodeLen = 2;
 		WAsmCode[0] = (Index << 9) | (reg2 << 6) | (mode << 3) | reg;
 		if(has_immediate) {
-			CodeLen = 2;
+			CodeLen = 4;
 			WAsmCode[1] = (Word)immediate;
 		}
+	}
+}
+
+static void DecodeJSR(Word Index) {
+	if(!ChkArgCnt(1, 2));
+	else {
+		if(ArgCnt == 2) DecodeRegSource(Index);
+		else {
+			Word mode;
+			Byte reg;
+			sint immediate;
+			Boolean has_immediate;
+			Boolean OK = DecodeMode(&ArgStr[1], False, False, &mode, &reg, &immediate, &has_immediate);
+			if(!OK) {
+				WrError(ErrNum_InvAddrMode);
+				return;
+			}
+			CodeLen = 2;
+			WAsmCode[0] = (Index << 9) | (7 << 6) | (mode << 3) | reg;
+			if(has_immediate) {
+				CodeLen = 4;
+				WAsmCode[1] = (Word)immediate;
+			}
+		}
+	}
+}
+
+static void DecodeRTS(Word Index) {
+	if(!ChkArgCnt(0, 1));
+	else {
+		Byte reg = 7;
+		if(ArgCnt == 1) {
+			char* pAsc = ArgStr[1].str.p_str;
+			if(pAsc[0] != 'R' && pAsc[0] != 'r') {
+				WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
+				return;
+			}
+			if(reg < 0 || reg >= 8) {
+				WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
+				return;
+			}
+		}
+		CodeLen = 2;
+		WAsmCode[0] = (Index << 3) | reg;
 	}
 }
 
@@ -220,17 +267,16 @@ static void DecodeBranch(Word Index) {
 		Boolean OK;
 		Word dest = EvalStrIntExpression(&ArgStr[1], UInt16, &OK);
 		if(OK) {
-			sint diff = (sint)dest - (sint)EProgCounter();
+			sint diff = (sint)dest - (sint)EProgCounter() - 2;
 			if((diff & 1) != 0) {
 				WrStrErrorPos(ErrNum_NotAligned, &ArgStr[1]);
 				return;
 			}
-			if(eSymbolFlag_Questionable) diff = 0;
 			if(diff >= 256 || diff < -256) {
 				WrStrErrorPos(ErrNum_DistTooBig, &ArgStr[1]);
 				return;
 			}
-			CodeLen = 1;
+			CodeLen = 2;
 			WAsmCode[0] = (Index << 8) | (Byte)((Word)diff >> 1);
 		}
 	}
@@ -250,7 +296,7 @@ static void DecodeMark(Word Index) {
 			if((dest & 1) != 0) WrStrErrorPos(ErrNum_NotAligned, &ArgStr[1]);
 			else {
 				WAsmCode[0] = Index | (dest >> 1);
-				CodeLen = 1;
+				CodeLen = 2;
 			}
 		}
 	}
@@ -271,33 +317,44 @@ static void DecodeTrap(Word Index) {
 			if(!OK) return;
 		}
 		WAsmCode[0] = Index | imm;
-		CodeLen = 1;
+		CodeLen = 2;
 	}
 }
 
 static void DecodeSOB(Word Index) {
-	if(!ChkArgCnt(1, 1));
+	if(!ChkArgCnt(2, 2));
 	else {
-		if(ArgStr[1].str.p_str[0] == '#' || ArgStr[1].str.p_str[0] == '@') {
+		if(ArgStr[2].str.p_str[0] == '#' || ArgStr[2].str.p_str[0] == '@') {
 			WrError(ErrNum_InvAddrMode);
 			return;
 		}
 		Boolean OK;
-		Word dest = EvalStrIntExpression(&ArgStr[1], UInt16, &OK);
+		Word dest = EvalStrIntExpression(&ArgStr[2], UInt16, &OK);
 		if(!OK) return;
-		sint diff = (sint)dest - (sint)EProgCounter();
+		sint diff = (sint)dest - (sint)EProgCounter() - 2;
 		if((diff & 1) != 0) {
-			WrStrErrorPos(ErrNum_NotAligned, &ArgStr[1]);
+			WrStrErrorPos(ErrNum_NotAligned, &ArgStr[2]);
 			return;
 		}
-		if(eSymbolFlag_Questionable) diff = 0;
 		if(diff > 0 || diff < -126) {
-			WrStrErrorPos(ErrNum_DistTooBig, &ArgStr[1]);
+			WrStrErrorPos(ErrNum_DistTooBig, &ArgStr[2]);
 			return;
 		}
 		diff = (-diff) >> 1;
-		WAsmCode[0] = Index | diff;
-		CodeLen = 1;
+		
+		char* pAsc = ArgStr[1].str.p_str;
+		if(pAsc[0] != 'R' && pAsc[0] != 'r') {
+			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
+			return;
+		}
+		Byte reg2 = pAsc[1] - '0';
+		if(reg2 < 0 || reg2 >= 8) {
+			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
+			return;
+		}
+		
+		WAsmCode[0] = Index | diff | (reg2 << 6);
+		CodeLen = 2;
 	}
 }
 
@@ -316,12 +373,12 @@ static void DecodeCC(Word Index) {
 			if(!OK) return;
 		}
 		WAsmCode[0] = Index | clear;
-		CodeLen = 1;
+		CodeLen = 2;
 	}
 }
 
 static void DecodeImplied(Word Index) {
-	CodeLen = 1;
+	CodeLen = 2;
 	WAsmCode[0] = Index;
 }
 
@@ -412,9 +469,9 @@ static void InitFields(void) {
 	
 	AddSingle("JMP", 0b0000000001);
 	
-	AddRegSource("JSR", 0b0000100);
+	AddInstTable(InstTable, "JSR", 0b0000100, DecodeJSR);
 	
-	AddSingle("RTS", 0b0000000010000);
+	AddInstTable(InstTable, "RTS", 0b0000000010000, DecodeRTS);
 	
 	AddInstTable(InstTable, "MARK", 0b0000110100000000, DecodeMark);
 	AddInstTable(InstTable, "SOB", 0b0111111000000000, DecodeSOB);
@@ -490,7 +547,7 @@ static void SwitchTo_as11(void) {
 	DivideChars = ","; HasAttrs = False;
 	
 	ValidSegs = (1 << SegCode);
-	Grans[SegCode] = 2; ListGrans[SegCode] = 2; SegInits[SegCode] = 0;
+	Grans[SegCode] = 1; ListGrans[SegCode] = 2; SegInits[SegCode] = 0;
 	SegLimits[SegCode] = 0xffffl;
 	MakeCode = MakeCode_as11; IsDef = IsDef_as11;
 	

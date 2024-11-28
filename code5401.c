@@ -137,7 +137,7 @@ static void SwitchTo_5401(void)
   pDescr = FindFamilyByName("5401");
 
   TurnWords = False;
-  IntConstMode = eIntConstModeMoto;
+  SetIntConstMode(eIntConstModeMoto);
   ShiftIsOccupied = False;
 
   PCSymbol = "$";
