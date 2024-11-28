@@ -346,7 +346,7 @@ static void AddSingle(char *NName, Word NCode) {
 }
 
 static void InitFields(void) {
-	InstTable = CreateInstTable(203);
+	InstTable = CreateInstTable(100);
 	
 	AddSingle("CLR", 0b0000101000);
 	AddSingle("CLRB", 0b1000101000);
