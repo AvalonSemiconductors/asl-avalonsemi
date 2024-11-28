@@ -10,6 +10,8 @@
 
 /*
  * (Tholin, 24/09/2024) Added support for: AS2650-2, QCPU, AS5401
+ * (Tholin, 27/09/2024) Added support for: LVDC
+ * (Tholin, 27/11/2024) Added support for: AS-11
  */
 
 #include "stdinc.h"
@@ -168,7 +170,9 @@
 #include "codexcore.h"
 #include "code1750.h"
 #include "codeqcpu.h"
+#include "codelvdc.h"
 #include "code5401.h"
+#include "codeas11.h"
 #include "codekenbak.h"
 #include "codecp1600.h"
 #include "codenano.h"
@@ -4383,8 +4387,10 @@ int main(int argc, char **argv)
     code8x30x_init();
     code2650_init();
     code_qcpu_init();
+    code_lvdc_init();
     codeas2650_init();
     code5401_init();
+    codeas11_init();
     codexa_init();
     codeavr_init();
     code29k_init();

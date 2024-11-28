@@ -10,6 +10,7 @@
 
 /*
  * (Tholin, 24/09/2024) Added support for: AS2650-2, QCPU
+ * (Tholin, 27/09/2024) Added support for: LVDC
  */
 
 #include "stdinc.h"
@@ -61,6 +62,7 @@ static const TFamilyDescr Descrs[] =
   { "8X30x"        , 0x003a, eHexFormatIntel   },
   { "2650"         , 0x0037, eHexFormatMotoS   },
   { "AS2650-2"     , 0x0087, eHexFormatMotoS   },
+  { "AS-11"        , 0x008D, eHexFormatMotoS   },
   { "XA"           , 0x003c, eHexFormatIntel16 },
   { "AVR"          , 0x003b, eHexFormatAtmel   },
   { "AVR(CSEG8)"   , 0x003d, eHexFormatAtmel   },
@@ -139,6 +141,7 @@ static const TFamilyDescr Descrs[] =
   { "PDK16"        , 0x001d, eHexFormatIntel   },
   { "1750"         , 0x004f, eHexFormatIntel   },
   { "QCPU"         , 0x0089, eHexFormatIntel   },
+  { "LVDC"         , 0x008B, eHexFormatIntel   },
   { "5401"         , 0x008A, eHexFormatIntel   },
   { "CP1600"       , 0x000a, eHexFormatIntel   },
   { "NANO"         , 0x000b, eHexFormatIntel   },

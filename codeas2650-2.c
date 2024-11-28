@@ -124,7 +124,7 @@ static void DecodeRegAbs(Word Index) {
 		if(!OK) return;
 		
 		if((AbsVal & 0xE000) != (EProgCounter() & 0xE000)) {
-			WrError(ErrNum_InvAddrMode);
+			WrError(ErrNum_TargOnDiffPage);
 			return;
 		}
 		AbsVal &= 0x1FFF;
@@ -192,7 +192,7 @@ static void DecodeCondAbs(Word Index) {
 		Address = EvalStrIntExpressionOffs(&ArgStr[2], IndFlag, UInt16, &OK);
 		if(OK) {
 			if((Address & 0x8000) != (EProgCounter() & 0x8000)) {
-				WrError(ErrNum_InvAddrMode);
+				WrError(ErrNum_TargOnDiffPage);
 				return;
 			}
 			Address &= 0x7FFF;
@@ -258,7 +258,7 @@ static void DecodeRegAbs2(Word Index) {
 		IndFlag = *ArgStr[2].str.p_str == '*';
 		AbsVal = EvalStrIntExpressionOffs(&ArgStr[2], IndFlag, UInt16, &OK);
 		if((AbsVal & 0x8000) != (EProgCounter() & 0x8000)) {
-			WrError(ErrNum_InvAddrMode);
+			WrError(ErrNum_TargOnDiffPage);
 			return;
 		}
 		AbsVal &= 0x7FFF;
@@ -371,10 +371,10 @@ static void AddCondRel(char *pName, Word Code, Boolean Extended) {
 static void AddRegAbs2(char *pName, Word Code, Boolean Extended) {
 	AddInstTable(InstTable, pName, Code, DecodeRegAbs2);
 }
-   
+
 static void AddBrAbs(char *pName, Word Code, Boolean Extended) {
 	AddInstTable(InstTable, pName, Code, DecodeBrAbs);
-}  
+}
 
 static void AddCond(char *pName, Word Code, Boolean Extended) {
 	AddInstTable(InstTable, pName, Code, DecodeCond);
@@ -540,7 +540,8 @@ static void SwitchFrom_as2650(void) {
 static void SwitchTo_as2650(void) {
 	const TFamilyDescr *pDescr;
 	
-	TurnWords = False; IntConstMode = eIntConstModeMoto; ShiftIsOccupied = False;
+	SetIntConstMode(eIntConstModeMoto);
+	TurnWords = False; ShiftIsOccupied = False;
 	
 	pDescr = FindFamilyByName("AS2650-2");
 	PCSymbol = "$"; HeaderID = pDescr->Id; NOPCode = 0xc0;
