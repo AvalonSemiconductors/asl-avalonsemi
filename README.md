@@ -10,6 +10,7 @@ Currently contains code gens for:
 [AS5401](https://github.com/AvalonSemiconductors/tt2-AvalonSemi-5401/tree/main)
 [AS2650-2](https://github.com/AvalonSemiconductors/AS2650)
 [QCPU](https://github.com/AvalonSemiconductors/gfmpw1-multi)
+[AS-11](https://github.com/AvalonSemiconductors/gfmpw1-multi)
 
 <!-------------------------------------------------------------------->
 [asl]: http://john.ccac.rwth-aachen.de:8000/as/
