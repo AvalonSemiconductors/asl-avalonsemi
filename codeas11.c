@@ -204,7 +204,7 @@ static void DecodeRegSource(Word Index) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[swap ? 2 : 1]);
 			return;
 		}
-		Byte reg2 = pAsc[swap ? 2 : 1] - '0';
+		Byte reg2 = pAsc[1] - '0';
 		if(reg2 < 0 || reg2 >= 8) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[swap ? 2 : 1]);
 			return;
