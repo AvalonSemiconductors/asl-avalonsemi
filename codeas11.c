@@ -189,27 +189,28 @@ static void DecodeDouble(Word Index) {
 static void DecodeRegSource(Word Index) {
 	if(!ChkArgCnt(2, 2));
 	else {
+		Boolean swap = (Index & 32768) != 0;
 		Word mode;
 		Byte reg;
 		sint immediate;
 		Boolean has_immediate;
-		Boolean OK = DecodeMode(&ArgStr[2], False, False, &mode, &reg, &immediate, &has_immediate);
+		Boolean OK = DecodeMode(&ArgStr[swap ? 1 : 2], False, False, &mode, &reg, &immediate, &has_immediate);
 		if(!OK) {
 			WrError(ErrNum_InvAddrMode);
 			return;
 		}
-		char* pAsc = ArgStr[1].str.p_str;
+		char* pAsc = ArgStr[swap ? 2 : 1].str.p_str;
 		if(pAsc[0] != 'R' && pAsc[0] != 'r') {
-			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
+			WrStrErrorPos(ErrNum_InvReg, &ArgStr[swap ? 2 : 1]);
 			return;
 		}
-		Byte reg2 = pAsc[1] - '0';
+		Byte reg2 = pAsc[swap ? 2 : 1] - '0';
 		if(reg2 < 0 || reg2 >= 8) {
-			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
+			WrStrErrorPos(ErrNum_InvReg, &ArgStr[swap ? 2 : 1]);
 			return;
 		}
 		CodeLen = 2;
-		WAsmCode[0] = (Index << 9) | (reg2 << 6) | (mode << 3) | reg;
+		WAsmCode[0] = ((Index & 0x7FFF) << 9) | (reg2 << 6) | (mode << 3) | reg;
 		if(has_immediate) {
 			CodeLen = 4;
 			WAsmCode[1] = (Word)immediate;
@@ -493,8 +494,8 @@ static void InitFields(void) {
 	
 	AddImplied("MFTP", 0b1111000000000011);
 	
-	AddRegSource("IOR", 0b0111101);
-	AddRegSource("IOW", 0b0111110);
+	AddRegSource("IOR", 0b0111101 + 32768);
+	AddRegSource("IOW", 0b0111110 + 32768);
 	
 	AddImplied("CLC", 0x00A1);
 	AddImplied("CLV", 0x00A2);
