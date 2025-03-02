@@ -190,11 +190,12 @@ static void DecodeRegSource(Word Index) {
 	if(!ChkArgCnt(2, 2));
 	else {
 		Boolean swap = (Index & 32768) != 0;
+		Boolean bodgefix = (Index & 16384) != 0;
 		Word mode;
 		Byte reg;
 		sint immediate;
 		Boolean has_immediate;
-		Boolean OK = DecodeMode(&ArgStr[swap ? 1 : 2], False, False, &mode, &reg, &immediate, &has_immediate);
+		Boolean OK = DecodeMode(&ArgStr[swap ? 1 : 2], bodgefix, False, &mode, &reg, &immediate, &has_immediate);
 		if(!OK) {
 			WrError(ErrNum_InvAddrMode);
 			return;
@@ -221,13 +222,13 @@ static void DecodeRegSource(Word Index) {
 static void DecodeJSR(Word Index) {
 	if(!ChkArgCnt(1, 2));
 	else {
-		if(ArgCnt == 2) DecodeRegSource(Index);
+		if(ArgCnt == 2) DecodeRegSource(Index | 16384);
 		else {
 			Word mode;
 			Byte reg;
 			sint immediate;
 			Boolean has_immediate;
-			Boolean OK = DecodeMode(&ArgStr[1], False, False, &mode, &reg, &immediate, &has_immediate);
+			Boolean OK = DecodeMode(&ArgStr[1], True, False, &mode, &reg, &immediate, &has_immediate);
 			if(!OK) {
 				WrError(ErrNum_InvAddrMode);
 				return;
