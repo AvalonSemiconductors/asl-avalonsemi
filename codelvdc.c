@@ -47,7 +47,7 @@ static void DecodeSimple(Word Code) {
 			fullInstr |= Code;
 			if(residual) fullInstr |= (1 << 4);
 			fullInstr |= addr << 5;
-			WAsmCode[0] = fullInstr;
+			DAsmCode[0] = fullInstr;
 			CodeLen = 1;
 		}
 	}
@@ -81,7 +81,7 @@ static void DecodeCDS(Word Code) {
 					if((Code & 1) != 0) fullInstr |= 1;
 					fullInstr <<= 5;
 					fullInstr |= 0xE;
-					WAsmCode[0] = fullInstr;
+					DAsmCode[0] = fullInstr;
 					CodeLen = 1;
 				}
 			}
@@ -93,7 +93,7 @@ static void DecodeShift(Word Code) {
 	if((Code & 2) != 0) {
 		//Clear-accumulator to zero is technically a shift instruction
 		Word fullInstr = 0x1E;
-		WAsmCode[0] = fullInstr;
+		DAsmCode[0] = fullInstr;
 		CodeLen = 1;
 		return;
 	}
@@ -114,7 +114,7 @@ static void DecodeShift(Word Code) {
 			if(shiftBy == 1) fullInstr |= (1 << 9);
 			else if(shiftBy == 2) fullInstr |= (1 << 10);
 		}
-		WAsmCode[0] = fullInstr;
+		DAsmCode[0] = fullInstr;
 		CodeLen = 1;
 	}
 }
@@ -131,7 +131,7 @@ static void DecodeEXM(Word Code) {
 				fullInstr |= (mod << 5);
 				if(syl != 0) fullInstr |= (1 << 9);
 				fullInstr |= (adr << 10);
-				WAsmCode[0] = fullInstr;
+				DAsmCode[0] = fullInstr;
 				CodeLen = 1;
 			}
 		}
@@ -212,7 +212,7 @@ static void SwitchTo_lvdc(void) {
 	HasAttrs = False;
 	
 	ValidSegs = (1 << SegCode);
-	Grans[SegCode] = 2; ListGrans[SegCode] = 2; SegInits[SegCode] = 0;
+	Grans[SegCode] = 4; ListGrans[SegCode] = 4; SegInits[SegCode] = 0;
 	SegLimits[SegCode] = 0x3fffl;
 	
 	MakeCode = MakeCode_lvdc;

@@ -191,7 +191,7 @@ static void DecodeLI(Word Index) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
-		if(Index) {
+		if((Index & 1) != 0) {
 			Boolean OK;
 			QuadWord imm = EvalStrIntExpression(&ArgStr[2], UInt32, &OK);
 			if(!OK) {
@@ -207,23 +207,21 @@ static void DecodeLI(Word Index) {
 			imm &= 0x0000FFFFU;
 			QuadWord instr = 0b10100010;
 			instr |= (QuadWord)rd << 11;
+			instr |= 1U << 17;
 			instr |= 1U << 25;
 			instr |= imm << 26;
 			pack[pIdx++] = instr;
 			return;
 		}
-		Boolean si = 0;
+		Boolean si = (Index & 256) != 0;
 		Boolean OK;
-		QuadWord imm = EvalStrIntExpression(&ArgStr[2], UInt16, &OK);
-		if(!OK) {
-			imm = EvalStrIntExpression(&ArgStr[2], Int16, &OK);
-			if(!OK) return;
-			si = 1;
-		}
+		QuadWord imm = EvalStrIntExpression(&ArgStr[2], si ? Int16 : UInt16, &OK);
+		if(!OK) return;
 		imm &= 0x0000FFFFU;
 		QuadWord instr = 0b10100010;
 		instr |= (QuadWord)rd << 11;
 		if(si) instr |= 1U << 24;
+		else instr |= 1U << 17;
 		instr |= imm << 26;
 		pack[pIdx++] = instr;
 	}
@@ -391,7 +389,7 @@ static void DecodeBranch(Word Index) {
 		}
 		Boolean si = (Index & 128) != 0;
 		Index &= 0x7;
-		QuadWord instr = 0b110;
+		QuadWord instr = 0b101;
 		instr |= (QuadWord)Index << 3;
 		if(si) instr |= 1U << 6;
 		instr |= (QuadWord)ri1 << 11;
@@ -439,7 +437,7 @@ static void AddImplied(char *NName, Word NCode) {
 }
 
 static void AddALU(char *NName, Word NCode) {
-	AddInstTable(InstTable, NName, NCode, DecodeImplied);
+	AddInstTable(InstTable, NName, NCode, DecodeALU);
 }
 
 static void AddALUSingle(char *NName, Word NCode) {
@@ -463,7 +461,7 @@ static void AddPredicate(char *NName, Word NCode) {
 }
 
 static void InitFields(void) {
-	InstTable = CreateInstTable(116);
+	InstTable = CreateInstTable(117);
 	AddImplied("NOP", 0);
 	
 	AddALU("ADD", 0);
@@ -531,8 +529,10 @@ static void InitFields(void) {
 	AddALUImmediate("MODIU", 11);
 	AddALUImmediate("DIVI", 26);
 	AddALUImmediate("MODI", 27);
-	AddInstTable(InstTable, "LLI", 0, DecodeLI);
+	AddInstTable(InstTable, "LLI", 256, DecodeLI);
+	AddInstTable(InstTable, "LLIU", 0, DecodeLI);
 	AddInstTable(InstTable, "LUI", 1, DecodeLI);
+	//TODO: "LI" and "LIU" that is same as LLI/LLIU, but always sign/zero extend
 	
 	AddInstTable(InstTable, "LIPC", 0, DecodeLIPC);
 	
@@ -645,7 +645,6 @@ static void MakeCode_vliw(void) {
 		BAsmCode[CodeLen] = instr & 0x3F;
 		if(breaks[0]) BAsmCode[CodeLen] |= 64;
 		if(breaks[1]) BAsmCode[CodeLen] |= 128;
-		printf("%d\n", CodeLen + 1);
 		CodeLen++;
 		pIdx = 0;
 		return;
