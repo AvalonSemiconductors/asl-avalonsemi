@@ -30,27 +30,63 @@ static void DecodeSimple(Word Code) {
 		Boolean residual = False;
 		if(ArgStr[1].str.p_str[0] == '+') {
 			if((Code & FLAG_RESIDUAL_ALLOWED) == 0) {
-				WrError(ErrNum_InvAddrMode);
+				WrStrErrorPos(ErrNum_InvAddrMode, &ArgStr[1]);
 				return;
 			}
 			residual = True;
 
 		}
-		Word addr = EvalStrIntExpressionOffs(&ArgStr[1], residual, (Code & FLAG_IMM_VALUE) != 0 ? UInt9 : UInt8, &OK);
-		if((addr & 256) != 0) {
+		Word addr = EvalStrIntExpressionOffs(&ArgStr[1], residual, (Code & FLAG_IMM_VALUE) != 0 ? UInt9 : UInt15, &OK);
+		if(!OK) return;
+		if((Code & FLAG_IMM_VALUE) != 0 && (addr & 256) != 0) {
 			addr &= 0xFF;
 			residual = True;
+		}
+		if((Code & FLAG_IMM_VALUE) == 0 && (addr >> 8) != (EProgCounter() >> 8)) {
+			WrStrErrorPos(ErrNum_ArgOutOfRange, &ArgStr[1]);
+			return;
 		}
 		Word fullInstr = 0;
 		if(OK) {
 			Code &= 0x0F;
 			fullInstr |= Code;
 			if(residual) fullInstr |= (1 << 4);
-			fullInstr |= addr << 5;
+			fullInstr |= (addr & 0xFF) << 5;
 			DAsmCode[0] = fullInstr;
 			CodeLen = 1;
 		}
 	}
+}
+
+static void DecodeExtendedHOP(Word Code) {
+	if((EProgCounter() & 0xFF) == 0xFF) {
+		WrError(ErrNum_ArgOutOfRange);
+		return;
+	}
+	//HOP Destination, [Data Module], [Data Sector]
+	//Same DM and DS as destination instruction module and instruction sector
+	if(!ChkArgCnt(1, 3)) return;
+	Boolean OK;
+	Word destination = EvalStrIntExpression(&ArgStr[1], UInt15, &OK);
+	if(!OK) return;
+	Word dm, ds, im, is;
+	is = (destination >> 8) & 0xF;
+	im = (destination >> 12) & 0x7;
+	destination &= 0xFF;
+	if(ArgCnt == 3) {
+		dm = EvalStrIntExpression(&ArgStr[2], UInt3, &OK);
+		if(!OK) return;
+		ds = EvalStrIntExpression(&ArgStr[3], UInt4, &OK);
+		if(!OK) return;
+	}else {
+		dm = im;
+		ds = is;
+	}
+	//Assemble new HOP constant
+	Word newHop = (im >> 1) | (is << 2) | (destination << 7) | (dm << 17) | (ds << 20) | ((im & 1) << 25);
+	DAsmCode[0] = Code | (((EProgCounter() + 1) & 0xFF) << 5);
+	DAsmCode[1] = newHop;
+	CodeLen += 2;
 }
 
 static void DecodeCDS(Word Code) {
@@ -101,7 +137,7 @@ static void DecodeShift(Word Code) {
 		Boolean OK;
 		Word shiftBy = EvalStrIntExpression(&ArgStr[1], UInt4, &OK);
 		if(shiftBy > 2 || shiftBy == 0) {
-			WrError(ErrNum_InvOpSize);
+			WrStrErrorPos(ErrNum_InvOpSize, &ArgStr[1]);
 			return;
 		}
 		Word fullInstr = 0x1E;
@@ -179,6 +215,8 @@ static void InitFields(void) {
 	AddShift("SHR", 1);
 
 	AddInstTable(InstTable, "EXM", 0, DecodeEXM);
+	
+	AddInstTable(InstTable, "HOP*", 0, DecodeExtendedHOP);
 }
 
 static void DeinitFields(void) {
@@ -213,7 +251,7 @@ static void SwitchTo_lvdc(void) {
 	
 	ValidSegs = (1 << SegCode);
 	Grans[SegCode] = 4; ListGrans[SegCode] = 4; SegInits[SegCode] = 0;
-	SegLimits[SegCode] = 0x3fffl;
+	SegLimits[SegCode] = 0x7fffl;
 	
 	MakeCode = MakeCode_lvdc;
 	IsDef = IsDef_lvdc;
