@@ -42,7 +42,7 @@ static void DecodeSimple(Word Code) {
 			addr &= 0xFF;
 			residual = True;
 		}
-		if((Code & FLAG_IMM_VALUE) == 0 && (addr >> 8) != (EProgCounter() >> 8)) {
+		if((Code & FLAG_IMM_VALUE) == 0 && !residual && (addr >> 8) != (EProgCounter() >> 8)) {
 			WrStrErrorPos(ErrNum_ArgOutOfRange, &ArgStr[1]);
 			return;
 		}
