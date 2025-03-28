@@ -14,7 +14,7 @@
 #include "asmitree.h"
 #include "codevars.h"
 #include "headids.h"
-#include "fourpseudo.h"
+#include "intpseudo.h"
 #include "errmsg.h"
 
 #include "codeqcpu.h"
@@ -217,7 +217,7 @@ static void DecodeCall(Word Code) {
 		Boolean OK;
 		Word dest = EvalStrIntExpression(&ArgStr[1], UInt14, &OK);
 		if(OK) {
-			WAsmCode[0] = 0x005C;
+			WAsmCode[0] = 0x125C;
 			WAsmCode[1] = J_CODE;
 			WAsmCode[1] |= (dest >> 8) & 0x3F;
 			WAsmCode[1] |= (dest & 0xFF) << 8;
@@ -252,7 +252,7 @@ static void InitFields(void) {
 	AddFixed("WAIT", 0xA05F);
 	AddFixed("RTI", 0xB05F);
 	AddFixed("LDC", 0xF05F);
-	AddFixed("RETURN", 0xD050);
+	AddFixed("RETURN", 0x125D);
 	AddFixed("NOP", 0x0055); //or r0,r0
 	
 	AddSingleReg("SR", 0x005F);
@@ -299,6 +299,7 @@ static void MakeCode_qcpu(void) {
 	CodeLen = 0; DontPrint = False;
 	
 	if(Memo("")) return;
+	if(DecodeIntelPseudo(False)) return;
 	
 	if(!LookupInstTable(InstTable, OpPart.str.p_str)) WrStrErrorPos(ErrNum_UnknownInstruction, &OpPart);
 	//printf("%ld\r\n", sizeof(LargeWord));

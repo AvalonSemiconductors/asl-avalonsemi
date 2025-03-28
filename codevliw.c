@@ -117,6 +117,30 @@ static void DecodeALUSingle(Word Index) {
 	}
 }
 
+static void DecodeCpy(Word Index) {
+	if(ChkArgCnt(2, 2)) {
+		Word rd = DisectReg(&ArgStr[1]);
+		if(rd == 1000) {
+			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
+			return;
+		}
+		Word ri1 = DisectReg(&ArgStr[2]);
+		if(ri1 == 1000) {
+			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
+			return;
+		}
+		QuadWord instr = 0b10100001;
+		instr |= (QuadWord)rd << 11;
+		instr |= (QuadWord)ri1 << 18;
+		instr |= (QuadWord)ri1 << 25;
+		Boolean halfword = (Index & 64) != 0;
+		Boolean upper = (Index & 128) != 0;
+		if(halfword) instr |= 1UL << 40;
+		if(upper) instr |= 1UL << 41;
+		pack[pIdx++] = instr;
+	}
+}
+
 static void DecodeALUImmediate(Word Index) {
 	if(ChkArgCnt(3, 3)) {
 		Word rd = DisectReg(&ArgStr[1]);
@@ -193,17 +217,12 @@ static void DecodeLI(Word Index) {
 		}
 		if((Index & 1) != 0) {
 			Boolean OK;
-			QuadWord imm = EvalStrIntExpression(&ArgStr[2], UInt32, &OK);
+			QuadWord imm = EvalStrIntExpression(&ArgStr[2], UInt16, &OK);
 			if(!OK) {
-				imm = EvalStrIntExpression(&ArgStr[2], Int32, &OK);
+				imm = EvalStrIntExpression(&ArgStr[2], Int16, &OK);
 				if(!OK) return;
 			}
 			
-			if((imm & 0x0000FFFFU) != 0) {
-				WrStrErrorPos(ErrNum_InvFormat, &ArgStr[3]);
-				return;
-			}
-			imm >>= 16;
 			imm &= 0x0000FFFFU;
 			QuadWord instr = 0b10100010;
 			instr |= (QuadWord)rd << 11;
@@ -221,7 +240,7 @@ static void DecodeLI(Word Index) {
 		QuadWord instr = 0b10100010;
 		instr |= (QuadWord)rd << 11;
 		if(si) instr |= 1U << 24;
-		else instr |= 1U << 17;
+		else if((Index & 128) == 0) instr |= 1U << 17;
 		instr |= imm << 26;
 		pack[pIdx++] = instr;
 	}
@@ -461,7 +480,7 @@ static void AddPredicate(char *NName, Word NCode) {
 }
 
 static void InitFields(void) {
-	InstTable = CreateInstTable(117);
+	InstTable = CreateInstTable(121);
 	AddImplied("NOP", 0);
 	
 	AddALU("ADD", 0);
@@ -499,6 +518,9 @@ static void InitFields(void) {
 	AddALUSingle("NEG", 13);
 	AddALUSingle("NEG.L", 13 + 64);
 	AddALUSingle("NEG.U", 13 + 64 + 128);
+	AddInstTable(InstTable, "CPY", 0, DecodeCpy);
+	AddInstTable(InstTable, "CPY.L", 64, DecodeCpy);
+	AddInstTable(InstTable, "CPY.U", 64 + 128, DecodeCpy);
 	
 	AddALUImmediate("ADDI", 0 + 512);
 	AddALUImmediate("ADDI.L", 0 + 64 + 512);
@@ -529,10 +551,10 @@ static void InitFields(void) {
 	AddALUImmediate("MODIU", 11);
 	AddALUImmediate("DIVI", 26);
 	AddALUImmediate("MODI", 27);
-	AddInstTable(InstTable, "LLI", 256, DecodeLI);
-	AddInstTable(InstTable, "LLIU", 0, DecodeLI);
-	AddInstTable(InstTable, "LUI", 1, DecodeLI);
-	//TODO: "LI" and "LIU" that is same as LLI/LLIU, but always sign/zero extend
+	AddInstTable(InstTable, "LLI", 256, DecodeLI); //Signed, updates whole reg
+	AddInstTable(InstTable, "LLIU", 0, DecodeLI); //Unsigned, updates only bits 0 - 15
+	AddInstTable(InstTable, "LUI", 1, DecodeLI); //Signed or Unsigned, updates only bits 16 - 31
+	AddInstTable(InstTable, "LIU", 128, DecodeLI); //Unsigned, updates bits 0 - 15 and clears bit 16 - 31
 	
 	AddInstTable(InstTable, "LIPC", 0, DecodeLIPC);
 	
@@ -652,6 +674,30 @@ static void MakeCode_vliw(void) {
 	prevIdx = pIdx;
 	char* pAsc = ArgStr[ArgCnt].str.p_str;
 	int l = strlen(pAsc);
+	Word predicate = 0xFFFF;
+	if(pAsc[l - 1] == ']') {
+		int i = l - 1;
+		int shortLen = 1;
+		do {
+			i--;
+			shortLen++;
+			if(pAsc[i] == '[') break;
+		}while(i);
+		if(pAsc[i] != '[') {
+			WrError(ErrNum_InvFormat);
+		}else {
+			i++;
+			pAsc[l - 1] = 0;
+			predicate = DisectPredStr(pAsc + i);
+			if(predicate == 1000) {
+				predicate = 0xFFFF;
+				WrError(ErrNum_InvFormat);
+			}
+		}
+		StrCompShorten(&ArgStr[ArgCnt], shortLen);
+		pAsc = ArgStr[ArgCnt - 1].str.p_str;
+		l = strlen(pAsc);
+	}
 	if(pAsc[l - 1] == '#' && pAsc[l - 2] == ' ') {
 		StrCompShorten(&ArgStr[ArgCnt], 2);
 		breaks[pIdx] = 1;
@@ -661,6 +707,7 @@ static void MakeCode_vliw(void) {
 		printf("Instruction(s) failed to assemble, inserting NOP\r\n");
 		pack[pIdx++] = NOPCode;
 	}
+	if(predicate != 0xFFFF) pack[pIdx - 1] |= (QuadWord)predicate << 8;
 }
 
 static Boolean IsDef_vliw(void) {
