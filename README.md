@@ -11,6 +11,9 @@ Currently contains code gens for:
 [AS2650-2](https://github.com/AvalonSemiconductors/AS2650)
 [QCPU](https://github.com/AvalonSemiconductors/gfmpw1-multi)
 [AS-11](https://github.com/AvalonSemiconductors/gfmpw1-multi)
+[ScrapCPU](https://github.com/rejunity/ci2406-rej-pommedeterrible-tholin)
+[VLIW](https://github.com/rejunity/ci2406-rej-pommedeterrible-tholin)
+[LVDC](https://github.com/89Mods/LVDC)
 
 <!-------------------------------------------------------------------->
 [asl]: http://john.ccac.rwth-aachen.de:8000/as/
