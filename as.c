@@ -101,6 +101,7 @@
 #include "code960.h"
 #include "code8x30x.h"
 #include "code2650.h"
+#include "codePDK13.h"
 #include "codeas2650-2.h"
 #include "codescrapcpu.h"
 #include "codexa.h"
@@ -4397,6 +4398,7 @@ int main(int argc, char **argv)
     code5401_init();
     codeas11_init();
     code_vliw_init();
+    code_PDK13_init();
     codexa_init();
     codeavr_init();
     code29k_init();

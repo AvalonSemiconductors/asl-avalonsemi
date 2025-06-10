@@ -66,6 +66,7 @@ static const TFamilyDescr Descrs[] =
   { "AS2650-2"     , 0x0087, eHexFormatMotoS   },
   { "AS-11"        , 0x008D, eHexFormatMotoS   },
   { "VLIW"         , 0x008F, eHexFormatIntel   },
+  { "PDK13"        , 0x0088, eHexFormatIntel   },
   { "XA"           , 0x003c, eHexFormatIntel16 },
   { "AVR"          , 0x003b, eHexFormatAtmel   },
   { "AVR(CSEG8)"   , 0x003d, eHexFormatAtmel   },
