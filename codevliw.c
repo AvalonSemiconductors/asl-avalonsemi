@@ -28,11 +28,12 @@ QuadWord pack[3];
 Boolean breaks[3];
 
 const QuadWord impliedCodes[] = {
-	0, //NOP
+	0xF<<3, //NOP
+	0xABAB<<3, //BPT
 };
 
-static Word DisectRegStr(char* pAsc) {
-	if(strcmp(pAsc, "zero") == 0) return 0;
+static Word DisectRegStr(char* pAsc, Boolean isDest) {
+	if(strcmp(pAsc, "zero") == 0) return isDest ? 0 : 59; //Silicon bug workaround: r59 is the zero-reg now
 	if(pAsc[0] != 'r' && pAsc[0] != 'R') return 1000;
 	pAsc++;
 	Word res = pAsc[0] - '0';
@@ -46,9 +47,9 @@ static Word DisectRegStr(char* pAsc) {
 	return res;
 }
 
-static Word DisectReg(struct sStrComp *pComp) {
+static Word DisectReg(struct sStrComp *pComp, Boolean isDest) {
 	char* pAsc = pComp->str.p_str;
-	return DisectRegStr(pAsc);
+	return DisectRegStr(pAsc, isDest);
 }
 
 static Word DisectPredStr(char* pAsc) {
@@ -71,9 +72,9 @@ static void DecodeImplied(Word Index) {
 
 static void DecodeALU(Word Index) {
 	if(ChkArgCnt(3, 3)) {
-		Word rd = DisectReg(&ArgStr[1]);
-		Word ri1 = DisectReg(&ArgStr[2]);
-		Word ri2 = DisectReg(&ArgStr[3]);
+		Word rd = DisectReg(&ArgStr[1], TRUE);
+		Word ri1 = DisectReg(&ArgStr[2], FALSE);
+		Word ri2 = DisectReg(&ArgStr[3], FALSE);
 		if(ri1 == 1000 || ri2 == 1000 || rd == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
@@ -94,8 +95,8 @@ static void DecodeALU(Word Index) {
 
 static void DecodeALUSingle(Word Index) {
 	if(ChkArgCnt(2, 2)) {
-		Word rd = DisectReg(&ArgStr[1]);
-		Word ri1 = DisectReg(&ArgStr[2]);
+		Word rd = DisectReg(&ArgStr[1], TRUE);
+		Word ri1 = DisectReg(&ArgStr[2], FALSE);
 		if(rd == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
@@ -119,12 +120,12 @@ static void DecodeALUSingle(Word Index) {
 
 static void DecodeCpy(Word Index) {
 	if(ChkArgCnt(2, 2)) {
-		Word rd = DisectReg(&ArgStr[1]);
+		Word rd = DisectReg(&ArgStr[1], TRUE);
 		if(rd == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
-		Word ri1 = DisectReg(&ArgStr[2]);
+		Word ri1 = DisectReg(&ArgStr[2], FALSE);
 		if(ri1 == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
 			return;
@@ -143,12 +144,12 @@ static void DecodeCpy(Word Index) {
 
 static void DecodeALUImmediate(Word Index) {
 	if(ChkArgCnt(3, 3)) {
-		Word rd = DisectReg(&ArgStr[1]);
+		Word rd = DisectReg(&ArgStr[1], TRUE);
 		if(rd == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
-		Word ri1 = DisectReg(&ArgStr[2]);
+		Word ri1 = DisectReg(&ArgStr[2], FALSE);
 		if(ri1 == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
 			return;
@@ -210,7 +211,7 @@ static void DecodeALUImmediate(Word Index) {
 
 static void DecodeLI(Word Index) {
 	if(ChkArgCnt(2, 2)) {
-		Word rd = DisectReg(&ArgStr[1]);
+		Word rd = DisectReg(&ArgStr[1], TRUE);
 		if(rd == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
@@ -248,12 +249,12 @@ static void DecodeLI(Word Index) {
 
 static void DecodeLIPC(Word Index) {
 	if(ChkArgCnt(2, 2)) {
-		Word rd = DisectReg(&ArgStr[1]);
+		Word rd = DisectReg(&ArgStr[1], TRUE);
 		if(rd == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
-		Word ri1 = DisectReg(&ArgStr[2]);
+		Word ri1 = DisectReg(&ArgStr[2], FALSE);
 		if(ri1 == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
 			return;
@@ -268,7 +269,7 @@ static void DecodeLIPC(Word Index) {
 
 static void DecodeLoadstore(Word Index) {
 	if(ChkArgCnt(2, 2)) {
-		Word rdrs = DisectReg(&ArgStr[1]);
+		Word rdrs = DisectReg(&ArgStr[1], (Index & 1) != 0 ? FALSE : TRUE);
 		if(rdrs == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
@@ -310,7 +311,7 @@ static void DecodeLoadstore(Word Index) {
 			}
 			counter++;
 		}
-		Word ridx = DisectRegStr(regBuff);
+		Word ridx = DisectRegStr(regBuff, FALSE);
 		if(ridx == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
 			return;
@@ -342,12 +343,12 @@ static void DecodeLoadstore(Word Index) {
 
 static void DecodeJump(Word Index) {
 	if(ChkArgCnt(3, 3)) {
-		Word rd = DisectReg(&ArgStr[1]);
+		Word rd = DisectReg(&ArgStr[1], TRUE);
 		if(rd == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
-		Word ridx = DisectReg(&ArgStr[2]);
+		Word ridx = DisectReg(&ArgStr[2], FALSE);
 		if(ridx == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
 			return;
@@ -378,16 +379,16 @@ static void DecodeBranch(Word Index) {
 	Boolean single = (Index & 64) != 0;
 	if(ChkArgCnt(single ? 2 : 3, single ? 2 : 3)) {
 		int iIdx = 3;
-		Word ri1 = DisectReg(&ArgStr[1]);
+		Word ri1 = DisectReg(&ArgStr[1], FALSE);
 		if(ri1 == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
-		Word ri2 = 0;
+		Word ri2 = 59; //Silicon bug workaround
 		if(ArgCnt == 2) {
 			iIdx = 2;
 		}else {
-			ri2 = DisectReg(&ArgStr[2]);
+			ri2 = DisectReg(&ArgStr[2], FALSE);
 			if(ri2 == 1000) {
 				WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
 				return;
@@ -426,14 +427,14 @@ static void DecodePredicate(Word Index) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[1]);
 			return;
 		}
-		Word ri1 = DisectReg(&ArgStr[2]);
+		Word ri1 = DisectReg(&ArgStr[2], FALSE);
 		if(ri1 == 1000) {
 			WrStrErrorPos(ErrNum_InvReg, &ArgStr[2]);
 			return;
 		}
-		Word ri2 = 0;
+		Word ri2 = 59; //Silicon bug workaround
 		if(ArgCnt != 2) {
-			ri2 = DisectReg(&ArgStr[3]);
+			ri2 = DisectReg(&ArgStr[3], FALSE);
 			if(ri2 == 1000) {
 				WrStrErrorPos(ErrNum_InvReg, &ArgStr[3]);
 				return;
@@ -480,8 +481,9 @@ static void AddPredicate(char *NName, Word NCode) {
 }
 
 static void InitFields(void) {
-	InstTable = CreateInstTable(121);
+	InstTable = CreateInstTable(122);
 	AddImplied("NOP", 0);
+	AddImplied("BPT", 1);
 	
 	AddALU("ADD", 0);
 	AddALU("ADD.L", 0 + 64);
@@ -731,7 +733,7 @@ static void SwitchTo_vliw(void) {
 	
 	ValidSegs = (1 << SegCode);
 	Grans[SegCode] = 1; ListGrans[SegCode] = 1; SegInits[SegCode] = 0;
-	NOPCode = 0;
+	NOPCode = 0xF<<3;
 	SegLimits[SegCode] = 0xFFFFFFFFul;
 	MakeCode = MakeCode_vliw; IsDef = IsDef_vliw;
 	
