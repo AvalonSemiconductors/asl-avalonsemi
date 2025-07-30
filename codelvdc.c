@@ -80,7 +80,7 @@ static void DecodeExtendedHOP(Word Code) {
 	Boolean OK;
 	Word destination = EvalStrIntExpression(&ArgStr[1], UInt15, &OK);
 	if(!OK) return;
-	Word dm, ds, im, is;
+	QuadWord dm, ds, im, is;
 	is = (destination >> 8) & 0xF;
 	im = (destination >> 12) & 0x7;
 	destination &= 0xFF;
@@ -95,6 +95,11 @@ static void DecodeExtendedHOP(Word Code) {
 	}
 	//Assemble new HOP constant
 	QuadWord newHop = (im >> 1) | (is << 2) | (destination << 7) | (dm << 17) | (ds << 20) | ((im & 1) << 25);
+	if(Code) {
+		DAsmCode[0] = newHop;
+		CodeLen++;
+		return;
+	}
 	DAsmCode[0] = Code | (((EProgCounter() + 1) & 0xFF) << 5);
 	DAsmCode[1] = newHop;
 	CodeLen += 2;
@@ -199,7 +204,7 @@ static void AddShift(char *NName, Word NCode) {
 }
 
 static void InitFields(void) {
-	InstTable = CreateInstTable(24);
+	InstTable = CreateInstTable(25);
 	
 	AddSimple("HOP", 0x0, True);
 	AddSimple("MPY", 0x1, True);
@@ -228,6 +233,7 @@ static void InitFields(void) {
 	AddInstTable(InstTable, "EXM", 0, DecodeEXM);
 	
 	AddInstTable(InstTable, "HOP*", 0, DecodeExtendedHOP);
+	AddInstTable(InstTable, "HOPC", 1, DecodeExtendedHOP);
 }
 
 static void DeinitFields(void) {
