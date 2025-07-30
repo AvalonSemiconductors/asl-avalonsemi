@@ -34,15 +34,26 @@ static void DecodeSimple(Word Code) {
 				return;
 			}
 			residual = True;
-
 		}
-		Word addr = EvalStrIntExpressionOffs(&ArgStr[1], residual, (Code & FLAG_IMM_VALUE) != 0 ? UInt9 : UInt15, &OK);
+		Boolean doAsISay = False;
+		if(ArgStr[1].str.p_str[0] == '@') {
+			if((Code & FLAG_RESIDUAL_ALLOWED) == 0) {
+				WrStrErrorPos(ErrNum_InvAddrMode, &ArgStr[1]);
+				return;
+			}
+			doAsISay = True;
+		}
+		if(residual && doAsISay) {
+			WrStrErrorPos(ErrNum_InvAddrMode, &ArgStr[1]);
+			return;
+		}
+		Word addr = EvalStrIntExpressionOffs(&ArgStr[1], residual || doAsISay, (Code & FLAG_IMM_VALUE) != 0 ? UInt9 : UInt15, &OK);
 		if(!OK) return;
 		if((Code & FLAG_IMM_VALUE) != 0 && (addr & 256) != 0) {
 			addr &= 0xFF;
 			residual = True;
 		}
-		if((Code & FLAG_IMM_VALUE) == 0 && !residual && (addr >> 8) != (EProgCounter() >> 8)) {
+		if((Code & FLAG_IMM_VALUE) == 0 && !residual && !doAsISay && (addr >> 8) != (EProgCounter() >> 8)) {
 			WrStrErrorPos(ErrNum_ArgOutOfRange, &ArgStr[1]);
 			return;
 		}
@@ -83,7 +94,7 @@ static void DecodeExtendedHOP(Word Code) {
 		ds = is;
 	}
 	//Assemble new HOP constant
-	Word newHop = (im >> 1) | (is << 2) | (destination << 7) | (dm << 17) | (ds << 20) | ((im & 1) << 25);
+	QuadWord newHop = (im >> 1) | (is << 2) | (destination << 7) | (dm << 17) | (ds << 20) | ((im & 1) << 25);
 	DAsmCode[0] = Code | (((EProgCounter() + 1) & 0xFF) << 5);
 	DAsmCode[1] = newHop;
 	CodeLen += 2;
