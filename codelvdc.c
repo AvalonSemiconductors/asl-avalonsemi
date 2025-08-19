@@ -70,7 +70,7 @@ static void DecodeSimple(Word Code) {
 }
 
 static void DecodeExtendedHOP(Word Code) {
-	if((EProgCounter() & 0xFF) == 0xFF) {
+	if((EProgCounter() & 0xFF) == 0xFF && !Code) {
 		WrError(ErrNum_ArgOutOfRange);
 		return;
 	}
