@@ -30,6 +30,20 @@ static void DecodeFixed(Word Code) {
   }
 }
 
+static void DecodeRet(Word Code) {
+	if(ChkArgCnt(0, 1)) {
+		if(ArgCnt == 1) {
+			Boolean OK;
+			WAsmCode[0] = EvalStrIntExpression(&ArgStr[1], UInt8, &OK);
+			WAsmCode[0] |= 0x0100;
+			CodeLen = 1;
+		}else {
+			WAsmCode[0] = 0x003A;
+			CodeLen = 1;
+		}
+	}
+}
+
 static void DecodeAddcSubc(Word Code) {
 	if(ChkArgCnt(1, 2)) {
 		if(ArgCnt == 2) {
@@ -288,7 +302,6 @@ static void InitFields(void) {
 	AddFixed("STOPEXE"  , 0x0037);
 	AddFixed("ENGINT"   , 0x0038);
 	AddFixed("DISGINT"  , 0x0039);
-	AddFixed("RET"      , 0x003A);
 	AddFixed("RETI"     , 0x003B);
 	
 	AddAri("ADD"        , 0x0 | SUPPORTS_LITERAL);
@@ -298,6 +311,7 @@ static void InitFields(void) {
 	AddInstTable(InstTable, "ADDC", 0, DecodeAddcSubc);
 	AddInstTable(InstTable, "SUBC", 1, DecodeAddcSubc);
 	AddInstTable(InstTable, "XOR", 0, DecodeXor);
+	AddInstTable(InstTable, "RET", 0, DecodeRet);
 	
 	AddSingle("IZSN", 0x2 | A_ONLY | M_ONLY);
 	AddSingle("DZSN", 0x3 | A_ONLY | M_ONLY);
